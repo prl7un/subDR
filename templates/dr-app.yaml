@@ -1,0 +1,11 @@
+{{- if .Values.dr_active }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: dr-recovery-linux-pod
+spec:
+  containers:
+  - name: linux-practice
+    image: ubuntu:latest
+    command: ["/bin/bash", "-c", "echo 'DR 복구 성공! /tmp/fix 파일을 수정하세요.' > /etc/motd && sleep 3600"]
+{{- end }}
