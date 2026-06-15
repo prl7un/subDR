@@ -1,0 +1,23 @@
+name: DR Activation Trigger
+on:
+  repository_dispatch:
+    types: [failover]
+jobs:
+  activate-dr:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: action/checkout@v4
+      with:
+        token: ${{ secrets.MY_GITHUB_TOKEN }}
+    - name: Change False to True
+      run: |
+        sed -i 's/dr_active: false/dr_active: true/g' value.yaml
+    - name: Commit & Push
+      run: |
+        git config --global user.name "dr-bot"
+        git config --global user.name "dr-bot@test.com"
+        git add value.yaml
+        git commit -m "[DR ACTIVATE] Production server down!"
+        git push 
+      
+      
