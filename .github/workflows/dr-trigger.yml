@@ -1,23 +1,51 @@
 name: DR Activation Trigger
+
 on:
-  repository_dispatch:
-    types: [failover]
+  schedule:
+    - cron: '*/5 * * * *'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: dr-trigger
+  cancel-in-progress: false
+
 jobs:
   activate-dr:
     runs-on: ubuntu-latest
     steps:
-    - uses: action/checkout@v4
-      with:
-        token: ${{ secrets.MY_GITHUB_TOKEN }}
-    - name: Change False to True
-      run: |
-        sed -i 's/dr_active: false/dr_active: true/g' value.yaml
-    - name: Commit & Push
-      run: |
-        git config --global user.name "dr-bot"
-        git config --global user.name "dr-bot@test.com"
-        git add value.yaml
-        git commit -m "[DR ACTIVATE] Production server down!"
-        git push 
-      
-      
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ github.token }}
+
+      - name: Activate DR when active node is down
+        run: |
+          set -euo pipefail
+
+          CURRENT_STATE=$(grep '^dr_active:' values.yaml | awk '{print $2}')
+          if [ "$CURRENT_STATE" = "true" ]; then
+            echo "DR is already active. No action needed."
+            exit 0
+          fi
+
+          LAST_COMMIT=$(git log -1 --format=%ct)
+          NOW=$(date +%s)
+          ELAPSED=$((NOW - LAST_COMMIT))
+
+          echo "Seconds since last commit: ${ELAPSED}"
+
+          if [ "$ELAPSED" -le 180 ]; then
+            echo "Active node is healthy (last commit within 180 seconds). Skipping."
+            exit 0
+          fi
+
+          echo "Active node appears down. Setting dr_active to true..."
+          sed -i 's/dr_active: false/dr_active: true/' values.yaml
+
+          git config user.name "dr-bot"
+          git config user.email "dr-bot@users.noreply.github.com"
+          git add values.yaml
+          git commit -m "[DR ACTIVATE] Active node down - enabling disaster recovery"
+          git push origin HEAD:${GITHUB_REF#refs/heads/}
