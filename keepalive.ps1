@@ -13,16 +13,32 @@
 #
 # Stop this script (simulate the on-premise machine going down) to let Healthchecks.io detect
 # staleness after its grace period and trigger DR activation automatically.
+#
+# SECURITY NOTE: the Healthchecks.io ping URL is a semi-sensitive identifier (anyone who has it
+# can send fake "alive" pings), so it is intentionally NOT hardcoded here. It's read from
+# hc-ping-url.local.txt (gitignored, never committed) next to this script. Run
+# setup-hc-ping-url.ps1 once to create that local file.
 
 param(
     [string]$RepoPath = $PSScriptRoot,
-    [string]$HealthchecksPingUrl = "https://hc-ping.com/3298a626-a8c6-44e4-9bad-f33cee9c42e7"
+    [string]$HealthchecksPingUrl
 )
 
-try {
-    Invoke-WebRequest -Uri $HealthchecksPingUrl -UseBasicParsing -TimeoutSec 10 | Out-Null
-} catch {
-    Write-Warning "Healthchecks ping failed: $_"
+if (-not $HealthchecksPingUrl) {
+    $localUrlFile = Join-Path $PSScriptRoot "hc-ping-url.local.txt"
+    if (Test-Path $localUrlFile) {
+        $HealthchecksPingUrl = (Get-Content $localUrlFile -Raw).Trim()
+    }
+}
+
+if ($HealthchecksPingUrl) {
+    try {
+        Invoke-WebRequest -Uri $HealthchecksPingUrl -UseBasicParsing -TimeoutSec 10 | Out-Null
+    } catch {
+        Write-Warning "Healthchecks ping failed: $_"
+    }
+} else {
+    Write-Warning "No Healthchecks ping URL configured. Run setup-hc-ping-url.ps1 first (see README note in that script)."
 }
 
 Set-Location -Path $RepoPath
