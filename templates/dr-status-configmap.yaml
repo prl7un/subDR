@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: dr-status
+  labels:
+    app.kubernetes.io/part-of: subdr
+data:
+  dr_active: {{ .Values.dr_active | quote }}
