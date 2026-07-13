@@ -1,0 +1,6 @@
+apiVersion: v2
+name: subdr
+description: DR (Disaster Recovery) failover demo chart - deploys the recovery workload when dr_active is true
+type: application
+version: 0.1.0
+appVersion: "1.0"
