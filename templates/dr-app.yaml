@@ -1,11 +1,54 @@
 {{- if .Values.dr_active }}
-apiVersion: v1
-kind: Pod
+apiVersion: apps/v1
+kind: Deployment
 metadata:
-  name: dr-recovery-linux-pod
+  name: dr-recovery-app
+  labels:
+    app: dr-recovery-app
+    app.kubernetes.io/part-of: subdr
 spec:
-  containers:
-  - name: linux-practice
-    image: ubuntu:latest
-    command: ["/bin/bash", "-c", "echo 'DR 복구 성공! /tmp/fix 파일을 수정하세요.' > /etc/motd && sleep 3600"]
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dr-recovery-app
+  template:
+    metadata:
+      labels:
+        app: dr-recovery-app
+    spec:
+      serviceAccountName: dr-tutor-app
+      containers:
+        - name: dr-tutor
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 8000
+          # UPSTAGE_API_KEY 는 여기 YAML에 절대 하드코딩하지 않는다. 클러스터에 미리
+          # `kubectl create secret generic dr-tutor-ai-secret --from-literal=UPSTAGE_API_KEY=...`
+          # 로 생성해두면 자동 주입되고, 없으면(optional) 앱이 정적 힌트로 자연스럽게 폴백한다.
+          envFrom:
+            - secretRef:
+                name: dr-tutor-ai-secret
+                optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dr-recovery-app
+  labels:
+    app: dr-recovery-app
+    app.kubernetes.io/part-of: subdr
+spec:
+  selector:
+    app: dr-recovery-app
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: {{ .Values.service.targetPort }}
 {{- end }}

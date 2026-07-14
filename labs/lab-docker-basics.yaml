@@ -1,0 +1,76 @@
+# Docker 기초 실습 (간소화 버전)
+id: lab-docker-basics
+title: Docker 기초
+description: 이미지 빌드, 컨테이너 실행, 레이어 이해
+difficulty: beginner
+steps:
+  - id: 1
+    title: 컨테이너 실행
+    description: >
+      nginx:alpine 이미지를 받아 web 이라는 이름의 컨테이너를 백그라운드(-d)로 실행하고,
+      호스트 8080 포트를 컨테이너 80 포트에 연결(-p)하세요.
+    hint_levels:
+      - "이미지를 내려받아 컨테이너로 실행하는 명령 하나면 됩니다. 백그라운드 실행과 포트 연결 옵션이 각각 무엇인지 떠올려 보세요."
+      - "docker run 에 -d(백그라운드), --name(이름), -p <호스트포트>:<컨테이너포트> 를 조합합니다."
+      - "docker run -d --name web -p 8080:80 nginx:alpine"
+    answer_contains:
+      - "docker run"
+      - "-d"
+      - "--name web"
+      - "-p 8080:80"
+      - "nginx:alpine"
+  - id: 2
+    title: 실행 중인 컨테이너 들어가기 (exec)
+    description: |
+      docker exec 로 web 컨테이너 내부에 들어가 nginx 기본 페이지를 직접 바꿔보세요.
+      /usr/share/nginx/html/index.html 내용을 "hello docker" 로 교체하면 됩니다.
+    hint_levels:
+      - "실행 중인 컨테이너 안에서 명령을 실행하는 docker 하위 명령이 있습니다."
+      - "docker exec <컨테이너> sh -c '<명령>' 형태로 컨테이너 내부에서 셸 명령을 실행할 수 있습니다."
+      - "docker exec web sh -c 'echo \"hello docker\" > /usr/share/nginx/html/index.html'"
+    answer_contains:
+      - "docker exec"
+      - "web"
+      - "index.html"
+      - "hello docker"
+  - id: 3
+    title: Dockerfile로 이미지 빌드
+    description: |
+      ~/app 디렉터리에 나만의 이미지를 정의하고 myweb:v1 로 빌드하세요.
+
+      ~/app/Dockerfile:
+        FROM nginx:alpine
+        COPY html /usr/share/nginx/html
+    hint_levels:
+      - "이미지는 Dockerfile 의 명령(FROM, COPY...)으로 정의하고 별도 명령으로 빌드합니다."
+      - "FROM nginx:alpine 에 COPY html /usr/share/nginx/html 두 줄이면 충분합니다. docker build 에 -t <이름:태그> 를 넘기세요."
+      - "Dockerfile 작성 후 docker build -t myweb:v1 ~/app 을 실행하세요."
+    answer_contains:
+      - "FROM nginx:alpine"
+      - "COPY"
+      - "docker build"
+      - "-t myweb:v1"
+  - id: 4
+    title: 빌드한 이미지 실행
+    description: >
+      myweb:v1 이미지를 web2 라는 이름으로 8081 포트에 실행하세요.
+    hint_levels:
+      - "1단계와 같은 실행 명령이지만 이번엔 직접 빌드한 이미지와 다른 호스트 포트를 사용합니다."
+      - "docker run -d --name web2 -p 8081:80 에 이미지 이름 myweb:v1 을 지정하세요."
+      - "docker run -d --name web2 -p 8081:80 myweb:v1"
+    answer_contains:
+      - "docker run"
+      - "--name web2"
+      - "-p 8081:80"
+      - "myweb:v1"
+  - id: 5
+    title: 수명주기 관리
+    description: >
+      docker logs 로 web 컨테이너의 로그를 확인한 뒤, web 컨테이너를 중지하세요.
+    hint_levels:
+      - "컨테이너의 stdout 로그를 보는 명령과, 실행을 멈추는 명령을 떠올려 보세요."
+      - "docker logs <이름> / docker stop <이름> 을 사용합니다."
+      - "docker logs web 다음 docker stop web 을 실행하세요."
+    answer_contains:
+      - "docker logs web"
+      - "docker stop web"

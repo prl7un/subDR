@@ -1,1 +1,13 @@
 hc-ping-url.local.txt
+.env
+__pycache__/
+*.pyc
+
+# 강사님 강의자료(저작권 있음, 배포 금지) 및 그로부터 만든 로컬 RAG 인덱스는 절대 커밋하지 않는다.
+*.pdf
+rag_index.json
+
+# 로컬 개발/디버깅용 임시 파일
+_pf_out.log
+_pf_err.log
+*.log

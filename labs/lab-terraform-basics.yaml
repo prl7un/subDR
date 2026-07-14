@@ -1,0 +1,73 @@
+# Terraform 기초 실습 (실행 기반 검증)
+# execution: true. 랩 세션마다 격리된 스크래치 디렉터리(/tmp/lab-exec/<session>/lab-terraform-basics)
+# 에서 실제로 terraform 이 실행된다. hashicorp/local 프로바이더만 사용해 클라우드 자격증명이 필요 없다.
+id: lab-terraform-basics
+title: Terraform 기초
+description: HCL 문법, 리소스 선언, state 관리 (실제 terraform 실행)
+difficulty: intermediate
+execution: true
+steps:
+  - id: 1
+    title: main.tf 작성
+    description: |
+      아래 리소스 블록을 그대로 입력하면 main.tf 파일로 저장됩니다.
+      local_file 은 로컬 파일을 코드로 관리하는 가장 작은 Terraform 예제입니다.
+
+      resource "local_file" "hello" {
+        content  = "managed by terraform"
+        filename = "hello.txt"
+      }
+    input_type: file
+    target_path: main.tf
+    hint_levels:
+      - "Terraform 은 .tf 파일의 resource 블록으로 원하는 상태를 선언합니다. 어떤 리소스 타입이 '로컬 파일'을 관리할까요?"
+      - "resource \"local_file\" \"<이름>\" { ... } 블록을 작성합니다. content 와 filename 두 인자가 필요합니다."
+      - "resource \"local_file\" \"hello\" { content = \"managed by terraform\" filename = \"hello.txt\" }"
+    verify:
+      - type: file_contains
+        path: main.tf
+        expect: "resource \"local_file\""
+      - type: file_contains
+        path: main.tf
+        expect: "content"
+      - type: file_contains
+        path: main.tf
+        expect: "filename"
+  - id: 2
+    title: terraform init
+    description: >
+      워크스페이스에서 terraform init 을 실행합니다.
+    hint_levels:
+      - "Terraform 프로젝트는 작업을 시작하기 전에 provider 플러그인을 내려받는 초기화 단계가 필요합니다."
+      - "terraform 의 초기화 하위 명령을 실행하세요."
+      - "terraform init"
+    verify:
+      - type: file_exists
+        path: ".terraform.lock.hcl"
+  - id: 3
+    title: plan과 apply
+    description: >
+      terraform plan 으로 변경 예정 사항을 확인하고, terraform apply 로 실제 리소스를 생성합니다.
+      (확인 프롬프트는 자동으로 승인됩니다)
+    hint_levels:
+      - "Terraform 워크플로는 '미리보기'와 '적용' 두 단계로 나뉩니다."
+      - "terraform plan 으로 변경분을 확인하고 terraform apply 로 적용합니다."
+      - "terraform plan\nterraform apply"
+    verify:
+      - type: file_exists
+        path: "hello.txt"
+      - type: file_contains
+        path: "hello.txt"
+        expect: "managed by terraform"
+  - id: 4
+    title: 상태(state) 확인
+    description: >
+      terraform state list 로 방금 만든 리소스가 상태에 기록됐는지 확인하세요.
+    hint_levels:
+      - "Terraform 이 '지금까지 만든 것'을 기억하는 곳이 상태(state)입니다."
+      - "terraform state 하위 명령 중 리소스 목록을 보여주는 것을 사용하세요."
+      - "terraform state list"
+    verify:
+      - type: command
+        cmd: "terraform state list"
+        expect: "local_file.hello"

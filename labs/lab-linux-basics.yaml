@@ -1,0 +1,131 @@
+# Linux 기초 실습 (실행 기반 검증)
+# execution: true, runtime: shell. 세션별 격리 디렉터리를 HOME으로 두고 실제 /bin/sh -c 로
+# 실행한다(executor.py). mkdir/touch/find/cp/chmod/stat/grep/cat/tar/ln/ls/echo 만 허용.
+id: lab-linux-basics
+title: Linux 기초
+description: 파일·디렉터리, 권한, 프로세스 등 리눅스 셸 기본기 실습 (실제 셸 실행)
+difficulty: beginner
+execution: true
+runtime: shell
+steps:
+  - id: 1
+    title: 작업 트리 구성
+    description: |
+      홈 아래에 다음 구조를 만들고 로그 파일들을 준비하세요. 중간 경로까지 한 번에
+      만드는 옵션과 brace 확장( {a,b,c} )을 활용하면 명령 수를 줄일 수 있습니다.
+
+      ~/work/
+        ├── logs/      ← app1.log, app2.log, debug.txt 생성
+        ├── backup/
+        └── scripts/
+    hint_levels:
+      - "디렉터리 여러 개를 한 번에 만드는 방법과, 빈 파일을 만드는 명령을 떠올려 보세요."
+      - "mkdir -p 는 중간 경로를 함께 만들고, ~/work/{logs,backup,scripts} 처럼 brace 확장을 쓰면 한 번에 됩니다. 빈 파일은 touch."
+      - "mkdir -p ~/work/{logs,backup,scripts} 후 touch 로 logs 안에 app1.log, app2.log, debug.txt 세 파일을 만드세요."
+    verify:
+      - type: dir_exists
+        path: work/logs
+      - type: dir_exists
+        path: work/backup
+      - type: dir_exists
+        path: work/scripts
+      - type: file_exists
+        path: work/logs/app1.log
+      - type: file_exists
+        path: work/logs/app2.log
+      - type: file_exists
+        path: work/logs/debug.txt
+  - id: 2
+    title: find로 검색하고 복사
+    description: >
+      find 로 ~/work/logs 에서 이름이 .log 로 끝나는 파일만 찾아 ~/work/backup 으로
+      복사하세요. -name 패턴과 -exec 를 조합합니다. debug.txt 는 복사되면 안 됩니다.
+    hint_levels:
+      - "조건(이름 패턴)으로 파일을 찾는 명령과, 찾은 결과마다 다른 명령을 실행하는 옵션이 있습니다."
+      - "find <경로> -name \"*.log\" 로 패턴 검색하고, -exec cp {} <대상> \\; 으로 찾은 파일마다 복사를 실행합니다."
+      - "find ~/work/logs -name \"*.log\" -exec cp {} ~/work/backup/ \\; — backup 에 .log 두 개만 있고 debug.txt 가 없어야 합니다."
+    verify:
+      - type: file_exists
+        path: work/backup/app1.log
+      - type: file_exists
+        path: work/backup/app2.log
+      - type: file_absent
+        path: work/backup/debug.txt
+      - type: file_exists
+        path: work/logs/app1.log
+      - type: file_exists
+        path: work/logs/app2.log
+      - type: file_exists
+        path: work/logs/debug.txt
+  - id: 3
+    title: 권한 설계
+    description: >
+      scripts 디렉터리는 소유자 전체/그룹 읽기·실행만(750), 로그 파일 app1.log 는
+      소유자 읽기·쓰기/그룹 읽기만(640)으로 권한을 설계하세요. 8진수 표기에서 각 자리가
+      소유자/그룹/기타의 rwx 합(4+2+1)이라는 점을 이용합니다.
+    hint_levels:
+      - "rwx 를 숫자 하나로 표현하는 법(r=4, w=2, x=1)을 떠올려 보세요. '소유자 전부, 그룹은 읽기+실행, 기타는 없음'은 몇일까요?"
+      - "chmod <8진수> <경로> 입니다. 디렉터리는 진입에 x 가 필요해 750, 파일은 640 이 목표입니다. 확인은 stat -c %a."
+      - "chmod 750 ~/work/scripts 와 chmod 640 ~/work/logs/app1.log 를 실행하고 stat -c %a 로 750/640 을 확인하세요."
+    verify:
+      - type: command
+        cmd: "stat -c %a work/scripts"
+        expect: "750"
+      - type: command
+        cmd: "stat -c %a work/logs/app1.log"
+        expect: "640"
+  - id: 4
+    title: 텍스트 처리 — grep과 리다이렉션
+    description: >
+      /etc/passwd 에서 로그인 셸이 /bin/bash 인 계정 행만 추려 ~/work/bash-users.txt 로
+      저장하세요. grep 의 패턴 매칭과 출력 리다이렉션(>)을 조합합니다. cat 으로 결과를
+      확인해 보세요 (이 컨테이너에는 root 계정만 /bin/bash 를 씁니다).
+    hint_levels:
+      - "파일에서 패턴이 포함된 행만 출력하는 명령과, 그 출력을 화면 대신 파일로 보내는 방법을 떠올려 보세요."
+      - "grep <패턴> /etc/passwd 의 출력을 > 로 파일에 저장합니다. 패턴은 셸 경로 그대로 쓰면 됩니다."
+      - "grep /bin/bash /etc/passwd > ~/work/bash-users.txt — 파일 안에 root 계정 행이 있어야 합니다."
+    verify:
+      - type: file_contains
+        path: work/bash-users.txt
+        expect: "root"
+      - type: file_contains
+        path: work/bash-users.txt
+        expect: "/bin/bash"
+      - type: file_not_contains
+        path: work/bash-users.txt
+        expect: "nologin"
+  - id: 5
+    title: tar 아카이브
+    description: >
+      logs 디렉터리 전체를 gzip 압축 아카이브 ~/work/backup/logs.tar.gz 로 묶으세요.
+      -C 옵션으로 기준 디렉터리를 ~/work 로 두면 아카이브 내부 경로가 logs/... 로
+      깔끔해집니다. 만들고 나서 목록(-t)으로 내용을 확인하세요.
+    hint_levels:
+      - "여러 파일을 하나로 묶고(gzip 압축까지) 내용을 확인하는 고전 도구가 있습니다. 생성/압축/파일지정 플래그 조합을 떠올려 보세요."
+      - "tar czf <아카이브> -C <기준디렉터리> <대상> 으로 만들고, tar tzf <아카이브> 로 목록을 확인합니다."
+      - "tar czf ~/work/backup/logs.tar.gz -C ~/work logs — tar tzf 출력에 logs/app1.log 가 보이면 성공입니다."
+    verify:
+      - type: file_exists
+        path: work/backup/logs.tar.gz
+      - type: command
+        cmd: "tar tzf work/backup/logs.tar.gz"
+        expect: "logs/app1.log"
+      - type: command
+        cmd: "tar tzf work/backup/logs.tar.gz"
+        expect: "logs/app2.log"
+      - type: command
+        cmd: "tar tzf work/backup/logs.tar.gz"
+        expect: "logs/debug.txt"
+  - id: 6
+    title: 심볼릭 링크
+    description: >
+      자주 여는 로그에 빠르게 접근하도록 ~/latest-log 라는 심볼릭 링크를
+      ~/work/logs/app1.log 로 만들어 보세요. stat 으로 파일 유형을 확인합니다.
+    hint_levels:
+      - "원본을 가리키는 '바로가기' 파일을 만드는 명령이 있습니다. 하드 링크와 소프트(심볼릭) 링크의 차이도 생각해 보세요."
+      - "ln 에 심볼릭 링크 옵션(-s)을 주고 <원본> <링크이름> 순서로 지정합니다."
+      - "ln -s ~/work/logs/app1.log ~/latest-log — stat -c %F ~/latest-log 가 symbolic link 를 출력하면 성공입니다."
+    verify:
+      - type: command
+        cmd: "stat -c %F latest-log"
+        expect: "symbolic link"

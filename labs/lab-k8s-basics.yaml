@@ -1,0 +1,94 @@
+# Kubernetes 기초 실습 (실행 기반 검증)
+# execution: true 인 랩은 사용자가 입력한 kubectl 명령을 실제로 lab-sandbox 네임스페이스에서
+# 실행하고, verify 에 정의된 신뢰 검증 명령으로 실제 클러스터 상태를 확인한다(executor.py).
+id: lab-k8s-basics
+title: Kubernetes 기초
+description: Pod, Deployment, Service 기본 개념 실습 (실제 kubectl 실행)
+difficulty: intermediate
+execution: true
+steps:
+  - id: 1
+    title: 클러스터 상태 확인
+    description: |
+      kubectl 로 노드와 시스템 Pod 를 살펴보고, 노드가 Ready 가 될 때까지 기다리세요.
+      (실제로 이 클러스터의 kubectl 명령이 그대로 실행됩니다)
+    hint_levels:
+      - "클러스터의 구성 요소(노드, Pod)를 조회하는 kubectl 의 기본 동사를 떠올려 보세요."
+      - "kubectl get nodes 로 상태를 보고, kubectl wait 에 --for=condition=Ready 를 주면 준비될 때까지 블로킹합니다."
+      - "kubectl wait --for=condition=Ready node --all --timeout=120s"
+    verify:
+      - type: command
+        cmd: "kubectl wait --for=condition=Ready node --all --timeout=10s"
+        expect: "condition met"
+  - id: 2
+    title: Pod 실행
+    description: >
+      nginx:alpine (경량) 이미지로 web 네임스페이스(lab-sandbox)에 단일 Pod(이름: nginx)를 실행합니다.
+    hint_levels:
+      - "Deployment 없이 Pod 하나만 바로 만드는 kubectl 명령이 있습니다."
+      - "kubectl run <이름> 에 --image 와 --restart=Never 를 함께 지정합니다."
+      - "kubectl run nginx --image=nginx:alpine --restart=Never"
+    verify:
+      - type: command
+        cmd: "kubectl get pod nginx"
+        expect: "Running"
+      - type: command
+        cmd: "kubectl get pod nginx -o yaml"
+        expect: "image: nginx:alpine"
+  - id: 3
+    title: Pod 관찰과 라벨
+    description: >
+      Pod nginx 에 tier=web 라벨을 붙입니다.
+    hint_levels:
+      - "리소스에 key=value 메타데이터를 붙이는 kubectl 명령을 떠올려 보세요."
+      - "kubectl label pod <이름> key=value 로 라벨을 답니다."
+      - "kubectl label pod nginx tier=web"
+    verify:
+      - type: command
+        cmd: "kubectl get pod nginx --show-labels"
+        expect: "tier=web"
+  - id: 4
+    title: Deployment와 스케일링
+    description: >
+      nginx:alpine (경량) 이미지로 replica 2개의 Deployment(이름: web)를 만들고 4개로 스케일합니다.
+    hint_levels:
+      - "여러 복제본을 선언적으로 유지하는 리소스를 만들고, 복제본 수를 바꾸는 명령 두 가지가 필요합니다."
+      - "kubectl create deployment 로 만들고 kubectl scale deployment <이름> --replicas=<수> 로 조절합니다."
+      - "kubectl create deployment web --image=nginx:alpine --replicas=2 후 kubectl scale deployment web --replicas=4"
+    verify:
+      - type: command
+        cmd: "kubectl get deployment web"
+        expect: "4/4"
+      - type: command
+        cmd: "kubectl get deployment web -o yaml"
+        expect: "image: nginx:alpine"
+  - id: 5
+    title: Service로 노출
+    description: >
+      NodePort Service(이름: web)로 web Deployment 를 노드 포트 30080 에 노출합니다.
+    hint_levels:
+      - "Pod IP 는 재생성 시 바뀝니다. 노드의 포트로 노출하는 Service 타입은 무엇일까요?"
+      - "kubectl create service nodeport 를 사용합니다. --tcp=<port>:<targetPort> 와 --node-port 옵션이 필요합니다."
+      - "kubectl create service nodeport web --tcp=80:80 --node-port=30080"
+    verify:
+      - type: command
+        cmd: "kubectl get service web"
+        expect: "NodePort"
+      - type: command
+        cmd: "kubectl get service web"
+        expect: "30080"
+  - id: 6
+    title: 롤링 업데이트
+    description: >
+      web Deployment 의 이미지를 nginx:1.27-alpine 으로 교체하고 롤아웃을 지켜보세요.
+    hint_levels:
+      - "Deployment 의 컨테이너 이미지를 바꾸면 자동으로 점진 배포가 시작됩니다."
+      - "kubectl set image deployment/<이름> <컨테이너>=<이미지> 로 교체하고 kubectl rollout status 로 확인합니다."
+      - "kubectl set image deployment/web nginx=nginx:1.27-alpine"
+    verify:
+      - type: command
+        cmd: "kubectl get deployment web -o wide"
+        expect: "nginx:1.27-alpine"
+      - type: command
+        cmd: "kubectl rollout status deployment web --timeout=17s"
+        expect: "successfully rolled out"
