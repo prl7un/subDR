@@ -203,6 +203,17 @@ async def run_submission(submitted_text: str, cwd: Path, runtime: str = "kubectl
     return results
 
 
+async def run_pre_cleanup(commands: list[str], cwd: Path, runtime: str = "kubectl_terraform") -> None:
+    """단계 재시도 전에 랩 작성자가 정의한 정리 명령을 실행한다(사용자 입력 아님, 신뢰됨).
+    이전 시도가 남긴 동일 이름 리소스와의 AlreadyExists 충돌을 막기 위한 것이라,
+    실패(예: 원래 없어서 지울 게 없음)해도 학생 진행을 막지 않고 조용히 무시한다."""
+    for cmd in commands:
+        try:
+            await _run_line(cmd, cwd, runtime, timeout=DEFAULT_TIMEOUT_SECONDS)
+        except Exception:
+            pass
+
+
 async def write_file(cwd: Path, target_path: str, content: str) -> None:
     dest = (cwd / target_path).resolve()
     if not str(dest).startswith(str(cwd.resolve())):

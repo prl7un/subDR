@@ -28,6 +28,8 @@ steps:
       - "Deployment 없이 Pod 하나만 바로 만드는 kubectl 명령이 있습니다."
       - "kubectl run <이름> 에 --image 와 --restart=Never 를 함께 지정합니다."
       - "kubectl run nginx --image=nginx:alpine --restart=Never"
+    pre_cleanup:
+      - "kubectl delete pod nginx --ignore-not-found"
     verify:
       - type: command
         cmd: "kubectl get pod nginx"
@@ -55,6 +57,8 @@ steps:
       - "여러 복제본을 선언적으로 유지하는 리소스를 만들고, 복제본 수를 바꾸는 명령 두 가지가 필요합니다."
       - "kubectl create deployment 로 만들고 kubectl scale deployment <이름> --replicas=<수> 로 조절합니다."
       - "kubectl create deployment web --image=nginx:alpine --replicas=2 후 kubectl scale deployment web --replicas=4"
+    pre_cleanup:
+      - "kubectl delete deployment web --ignore-not-found"
     verify:
       - type: command
         cmd: "kubectl get deployment web"
@@ -70,6 +74,8 @@ steps:
       - "Pod IP 는 재생성 시 바뀝니다. 노드의 포트로 노출하는 Service 타입은 무엇일까요?"
       - "kubectl create service nodeport 를 사용합니다. --tcp=<port>:<targetPort> 와 --node-port 옵션이 필요합니다."
       - "kubectl create service nodeport web --tcp=80:80 --node-port=30080"
+    pre_cleanup:
+      - "kubectl delete service web --ignore-not-found"
     verify:
       - type: command
         cmd: "kubectl get service web"

@@ -36,6 +36,9 @@ class Step:
     input_type: str = "command"  # command | file (파일로 저장 후 검증)
     target_path: str = ""
     verify: list[VerifyCheck] = field(default_factory=list)
+    # 이 단계를 재시도할 때 이전 시도가 남긴 리소스와 충돌(AlreadyExists 등)하지 않도록,
+    # 학생 명령을 실행하기 전에 먼저 실행하는 신뢰된(랩 작성자 정의) 정리 명령들.
+    pre_cleanup: list[str] = field(default_factory=list)
 
     def check(self, submitted_text: str) -> bool:
         """(텍스트 매칭 랩 전용) 제출한 텍스트에 정답 키워드가 모두 포함되어 있으면 통과."""
@@ -86,6 +89,7 @@ def _parse_lab(data: dict) -> Lab:
             input_type=s.get("input_type", "command"),
             target_path=s.get("target_path", ""),
             verify=_parse_verify(s.get("verify", [])),
+            pre_cleanup=s.get("pre_cleanup", []),
         )
         for s in sorted(data.get("steps", []), key=lambda s: s["id"])
     ]

@@ -384,6 +384,9 @@ async def _run_execution_step(sid: str, lab: Lab, step: Step, answer: str) -> tu
     transcript_parts: list[str] = []
     submitted_something_real = False
 
+    if step.pre_cleanup:
+        await executor.run_pre_cleanup(step.pre_cleanup, cwd, runtime=lab.runtime)
+
     if step.input_type == "file":
         await executor.write_file(cwd, step.target_path, answer)
         transcript_parts.append(f"(파일 저장됨: {step.target_path})")
