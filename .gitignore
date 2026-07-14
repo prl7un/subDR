@@ -1,4 +1,5 @@
 hc-ping-url.local.txt
+.keepalive.lock
 .env
 __pycache__/
 *.pyc
