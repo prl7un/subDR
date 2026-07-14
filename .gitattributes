@@ -1,0 +1,2 @@
+keepalive.sh text eol=lf
+keepalive.ps1 text eol=crlf
