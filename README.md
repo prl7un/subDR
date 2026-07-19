@@ -106,10 +106,16 @@ docker build -t subdr-app:test .
 ```bash
 kind create cluster --name dr-cluster
 kind load docker-image subdr-app:test --name dr-cluster
+```
 
-kubectl apply -f templates/lab-sandbox-rbac.yaml   # 실행 기반 채점 샌드박스(RBAC) 사전 배포
+> `templates/` 아래 모든 매니페스트(복구 앱, RBAC, 상태 ConfigMap)는 **Helm 템플릿 문법**을 사용하므로 `kubectl apply -f`로 직접 적용할 수 없습니다. 반드시 Helm 또는 ArgoCD를 통해 전체 차트로 배포해야 합니다.
 
-# ArgoCD 설치 후, 이 저장소를 소스로 하는 Application 등록
+```bash
+# 방법 A: Helm으로 직접 배포
+helm install subdr . -f values.yaml
+
+# 방법 B: ArgoCD 설치 후, 이 저장소를 소스로 하는 Application 등록
+# (repoURL/path/targetRevision을 본인 저장소에 맞게 채운 매니페스트 필요)
 kubectl apply -f <argocd-application.yaml>
 ```
 
@@ -128,6 +134,7 @@ dr_active: true    # 장애 상태 (복구 워크로드 자동 배포)
   ```powershell
   powershell -ExecutionPolicy Bypass -File .\register-keepalive-task.ps1
   ```
+  > 주의: 이 스크립트는 **등록 시점부터 4시간 동안만** 1분 주기로 반복 실행되도록 등록됩니다(`register-keepalive-task.ps1`의 `-RepetitionDuration`). 4시간이 지나면 작업 자체는 남아있지만 더 이상 자동 실행되지 않으므로, 계속 사용하려면 주기적으로 이 스크립트를 다시 실행해야 합니다.
 - **Linux/EC2**:
   ```bash
   chmod +x keepalive.sh
