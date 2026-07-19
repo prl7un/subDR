@@ -1,4 +1,4 @@
-dr_active: false
+dr_active: true
 
 image:
   # kind load docker-image 로 dr-cluster 노드에 미리 적재된 로컬 이미지를 쓴다(레지스트리 푸시 불필요).
